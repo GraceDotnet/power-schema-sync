@@ -4,8 +4,12 @@
 Compare database structures and generate SQL for structure synchronization
 
 # Quick Start
+### install
+```
+dotnet add package PowerSchemaSync
+```
 
-
+### usages
 ```c#
 IDataBase dbSoruce = DataBaseFactory.GetDataBase(DataBaseType.MYSQL, "connString1");
 IDataBase dbTarget = DataBaseFactory.GetDataBase(DataBaseType.MYSQL, "connString2");
