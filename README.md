@@ -1,7 +1,11 @@
 # power-schema-sync
+[![Nuget](https://img.shields.io/nuget/v/PowerSchemaSync)](https://www.nuget.org/packages/PowerSchemaSync/)
+
 Compare database structures and generate SQL for structure synchronization
 
 # Quick Start
+
+
 ```c#
 IDataBase dbSoruce = DataBaseFactory.GetDataBase(DataBaseType.MYSQL, "connString1");
 IDataBase dbTarget = DataBaseFactory.GetDataBase(DataBaseType.MYSQL, "connString2");
