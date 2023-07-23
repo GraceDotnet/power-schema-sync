@@ -1,7 +1,7 @@
 # power-schema-sync
 [![Nuget](https://img.shields.io/nuget/v/PowerSchemaSync)](https://www.nuget.org/packages/PowerSchemaSync/)
 
-Compare database structures and generate SQL for structure synchronization
+Compare database structures and generate SQL for structure synchronization，Easy integration into applications~
 
 # Quick Start
 ### install
