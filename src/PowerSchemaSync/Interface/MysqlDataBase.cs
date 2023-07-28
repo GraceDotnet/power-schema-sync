@@ -8,6 +8,7 @@ using Dapper;
 using System.Data;
 using System.Data.Common;
 using PowerSchemaSync.Models.Metadatas;
+using PowerSchemaSync.Models;
 
 namespace PowerSchemaSync.Interface
 {
@@ -235,6 +236,21 @@ namespace PowerSchemaSync.Interface
         public string ModifyColumnSql(string schema, string tableName, string columeName, string columnType, string isNull, string defaultValue, string comment, string position)
         {
             return $"ALTER TABLE `{schema}`.`{tableName}` MODIFY COLUMN `{columeName}` {columnType} {(isNull == "YES" ? "NULL" : "NOT NULL")}{defaultValue}{comment}{position};";
+        }
+
+        public IEnumerable<SchemataEntity> GetSchemas()
+        {
+            var sql = """
+                SELECT	* FROM information_schema.schemata WHERE SCHEMA_NAME NOT IN ( 'mysql', 'information_schema', 'performance_schema', 'sys' );
+                """;
+
+            using var conn = GetConnection();
+            return conn.Query<SchemataEntity>(sql);
+        }
+
+        public ExecResult Exec(string schema, DiffResult diff, ExecOptions execOptions)
+        {
+            throw new NotImplementedException();
         }
     }
 }

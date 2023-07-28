@@ -21,8 +21,8 @@ Console.WriteLine(sqlStructure);
 // 2.结构比较获取同步结构的sql
 var diff = new DiffUtility(dbSoruce, "test", dbTarget, "test").Diff();
 
-Console.WriteLine("------------需要新建的表-----------");
-foreach (var sqls in diff.CreateTables.Select(x => x.SyncSqls))
+Console.WriteLine("------------新建-----------");
+foreach (var sqls in diff.Tables.Where(x => x.Operate == OprateEnum.Created).Select(x => x.SyncSqls))
 {
     foreach (var sql in sqls)
     {
@@ -30,8 +30,8 @@ foreach (var sqls in diff.CreateTables.Select(x => x.SyncSqls))
     }
 }
 
-Console.WriteLine("------------需要删除的表-----------");
-foreach (var sqls in diff.DeleteTables.Select(x => x.SyncSqls))
+Console.WriteLine("------------删除-----------");
+foreach (var sqls in diff.Tables.Where(x => x.Operate == OprateEnum.Delete).Select(x => x.SyncSqls))
 {
     foreach (var sql in sqls)
     {
@@ -39,8 +39,8 @@ foreach (var sqls in diff.DeleteTables.Select(x => x.SyncSqls))
     }
 }
 
-Console.WriteLine("------------需要修改的字段或索引-----------");
-foreach (var sqls in diff.EditTables.Select(x => x.SyncSqls))
+Console.WriteLine("------------修改-----------");
+foreach (var sqls in diff.Tables.Where(x => x.Operate == OprateEnum.Edit).Select(x => x.SyncSqls))
 {
     foreach (var sql in sqls)
     {

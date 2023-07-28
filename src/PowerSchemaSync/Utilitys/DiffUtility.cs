@@ -62,7 +62,8 @@ namespace PowerSchemaSync.Utilitys
 
                     var dropSql = Target.DropTableSql(targetTable!.Schema, tableName);
                     diff.SyncSqls.Add(dropSql);
-                    res.DeleteTables.Add(diff);
+                    diff.Operate = OprateEnum.Delete;
+                    res.Tables.Add(diff);
                     continue;
                 }
 
@@ -73,14 +74,20 @@ namespace PowerSchemaSync.Utilitys
 
                     // TODO: 创建表的sql
                     diff.SyncSqls.Add(sourceTable.CreateTable);
-                    res.CreateTables.Add(diff);
+                    diff.Operate = OprateEnum.Created;
+                    res.Tables.Add(diff);
                     continue;
                 }
 
                 // 两库中均存在该表
                 diffColumns(ref diff, sourceTable, targetTable);
                 diffIndex(ref diff, sourceTable, targetTable);
-                res.EditTables.Add(diff);
+
+                diff.Operate = OprateEnum.Edit;
+                if (diff.SyncSqls.Count == 0)
+                    diff.Operate = OprateEnum.None;
+
+                res.Tables.Add(diff);
             }
 
             return res;

@@ -1,3 +1,5 @@
+using OnlineWebApp.Filters;
+
 namespace OnlineWebApp
 {
     public class Program
@@ -8,6 +10,8 @@ namespace OnlineWebApp
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
+
+            builder.Services.AddSingleton<CustomExceptionFilterAttribute>();
 
             var app = builder.Build();
 

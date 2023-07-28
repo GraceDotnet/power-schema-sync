@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OnlineWebApp.Models;
+using PowerSchemaSync.Models;
 using System.Diagnostics;
 
 namespace OnlineWebApp.Controllers
@@ -18,7 +19,22 @@ namespace OnlineWebApp.Controllers
             return View();
         }
 
-        public IActionResult Privacy()
+        public IActionResult PreSync()
+        {
+            return View();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="s">源连接串</param>
+        /// <param name="ss">源schema</param>
+        /// <param name="st">源数据库类型</param>
+        /// <param name="t">目标连接串</param>
+        /// <param name="ts">目标schema</param>
+        /// <param name="tt">目标数据库类型</param>
+        /// <returns></returns>
+        public IActionResult SyncCheck(string s, string ss, DataBaseType st, string t, string ts, DataBaseType tt)
         {
             return View();
         }

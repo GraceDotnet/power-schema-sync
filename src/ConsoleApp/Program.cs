@@ -20,7 +20,7 @@ namespace ConsoleApp
             var diff = new DiffUtility(dbSoruce, "bxparking", dbTarget, "bxparking").Diff();
 
             Console.WriteLine("------------新建-----------");
-            foreach (var sqls in diff.CreateTables.Select(x => x.SyncSqls))
+            foreach (var sqls in diff.Tables.Where(x => x.Operate == OprateEnum.Created).Select(x => x.SyncSqls))
             {
                 foreach (var sql in sqls)
                 {
@@ -29,7 +29,7 @@ namespace ConsoleApp
             }
 
             Console.WriteLine("------------删除-----------");
-            foreach (var sqls in diff.DeleteTables.Select(x => x.SyncSqls))
+            foreach (var sqls in diff.Tables.Where(x => x.Operate == OprateEnum.Delete).Select(x => x.SyncSqls))
             {
                 foreach (var sql in sqls)
                 {
@@ -38,7 +38,7 @@ namespace ConsoleApp
             }
 
             Console.WriteLine("------------修改-----------");
-            foreach (var sqls in diff.EditTables.Select(x => x.SyncSqls))
+            foreach (var sqls in diff.Tables.Where(x => x.Operate == OprateEnum.Edit).Select(x => x.SyncSqls))
             {
                 foreach (var sql in sqls)
                 {

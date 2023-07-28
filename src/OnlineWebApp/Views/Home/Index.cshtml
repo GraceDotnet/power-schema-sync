@@ -1,8 +1,28 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "首页";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div id="app">
+    <el-button @@click="goSync">{{ message }}</el-button>
 </div>
+
+@section js{
+    <script>
+        const app = Vue.createApp(
+            {
+                data() {
+                    return {
+                        message: "结构同步",
+                    };
+                },
+
+                methods: {
+                    goSync() {
+                        location.href = "/home/presync";
+                    }
+                }
+            }
+        ).use(ElementPlus).mount("#app");
+    </script>
+}
+
