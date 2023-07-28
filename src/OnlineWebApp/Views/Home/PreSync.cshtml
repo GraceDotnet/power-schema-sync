@@ -1,0 +1,145 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewData["Title"] = "结构同步";
+}
+
+@section css{
+    <style>
+        .input-with-select .el-input-group__prepend {
+            background-color: var(--el-fill-color-blank);
+        }
+    </style>
+
+}
+
+
+<div id="app">
+    <el-container>
+        <el-header>
+            <el-row>
+                <el-col :span="8">
+
+                </el-col>
+                <el-col :span="8"> </el-col>
+                <el-col :span="8">
+
+                </el-col>
+            </el-row>
+        </el-header>
+        <el-main>
+            <div>
+                <el-row>
+                    <el-col :span="10">
+                        <h3>
+                            源
+                        </h3>
+                        <el-form :model="formSource" label-width="120px" label-position="top">
+                            <el-form-item label="连接">
+                                <el-input class="input-with-select" v-model="formSource.connStr" clearable @@blur="onSourceConnBlur">
+                                    <template #prepend>
+                                        <el-select v-model="formSource.dbType" placeholder="Select" style="width: 115px">
+                                            <el-option label="mysql" value="1" />
+                                        </el-select>
+                                    </template>
+                                </el-input>
+                            </el-form-item>
+                            <el-form-item label="数据库">
+                                <el-select v-model="formSource.schema" placeholder="选择数据库">
+                                    <el-option v-for="item in sourceSchemas"
+                                               :key="item.schemA_NAME"
+                                               :label="item.schemA_NAME"
+                                               :value="item.schemA_NAME" />
+                                </el-select>
+                            </el-form-item>
+                        </el-form>
+                    </el-col>
+                    <el-col :span="4"> </el-col>
+                    <el-col :span="10">
+                        <h3>
+                            目标
+                        </h3>
+                        <el-form :model="formTarget" label-width="120px" label-position="top">
+                            <el-form-item label="连接">
+                                <el-input class="input-with-select" v-model="formTarget.connStr" clearable @@blur="onTargetConnBlur">
+                                    <template #prepend>
+                                        <el-select v-model="formSource.dbType" placeholder="Select" style="width: 115px">
+                                            <el-option label="mysql" value="1" />
+                                        </el-select>
+                                    </template>
+                                </el-input>
+                            </el-form-item>
+                            <el-form-item label="数据库">
+                                <el-select v-model="formTarget.schema" placeholder="选择数据库">
+                                    <el-option v-for="item in targetSchemas"
+                                               :key="item.schemA_NAME"
+                                               :label="item.schemA_NAME"
+                                               :value="item.schemA_NAME" />
+                                </el-select>
+                            </el-form-item>
+                        </el-form>
+                    </el-col>
+                </el-row>
+            </div>
+        </el-main>
+        <el-footer style="text-align: center;">
+            <el-button type="primary" size="large" @@click="toDiff" :disabled="!canDiff">比对</el-button>
+        </el-footer>
+    </el-container>
+</div>
+
+@section js{
+    <script>
+        const app = Vue.createApp(
+            {
+                data() {
+                    return {
+                        formSource: {
+                            dbType: "1",
+                            connStr: "server=127.0.0.1;Port=3306;pooling=true;user id=root;password=123456",
+                            schema: ""
+                        },
+                        sourceSchemas: [],
+                        formTarget: {
+                            dbType: "1",
+                            connStr: "server=127.0.0.1;Port=3306;pooling=true;user id=root;password=123456",
+                            schema: ""
+                        },
+                        targetSchemas: [],
+                    };
+                },
+                computed: {
+                    canDiff() {
+                        return this.formSource.connStr && this.formSource.schema && this.formTarget.connStr && this.formTarget.schema;
+                    }
+                },
+                methods: {
+                    toDiff() {
+                        location.href = `/home/SyncCheck?s=${this.formSource.connStr}&ss=${this.formSource.schema}&st=${this.formSource.dbType}&t=${this.formTarget.connStr}&ts=${this.formTarget.schema}&tt=${this.formTarget.dbType}`;
+                    },
+                    onSourceConnBlur(e) {
+                        this.getSchemas(this.formSource).then(res => {
+                            this.sourceSchemas = res.data;
+                        }).catch(err => {
+                            this.$message.error(err.response.data);
+                        });
+                    },
+                    onTargetConnBlur(e) {
+                        let that = this;
+                        this.getSchemas(this.formTarget).then(res => {
+                            that.targetSchemas = res.data;
+                        }).catch(err => {
+                            this.$message.error(err.response.data);
+                        });
+                    },
+                    async getSchemas(data) {
+                        return await axios.get('/api/Sync/Schemas', {
+                            params: data
+                        })
+                    }
+                },
+            }
+        ).use(ElementPlus).mount("#app");
+    </script>
+}

@@ -1,0 +1,153 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewData["Title"] = "结构检查";
+}
+
+<div id="app">
+    <div v-loading.fullscreen.lock="fullscreenLoading" element-loading-text="正在比对..."></div>
+    <!--第一步-->
+    <el-container v-show="step == 1">
+        <el-header>
+
+        </el-header>
+        <el-main>
+            <!--上部分-->
+            <el-table row-key="tableName" :data="tableData" style="width: 100%" highlight-current-row @@current-change="currentChange">
+                <el-table-column prop="tableName" label="源对象" min-width="45%" sortable>
+                    <template #default="scope">
+                        {{ scope.row.tableName }}
+                    </template>
+                </el-table-column>
+                <el-table-column prop="operate" label="操作" min-width="10%" sortable></el-table-column>
+                <el-table-column prop="tableName" label="目标对象" min-width="45%" sortable>
+                    <template #default="scope">
+                        <div v-if="scope.row.operate!=''">{{ scope.row.tableName }}</div>
+                        <div else="scope.row.operate!=''"></div>
+                    </template>
+                </el-table-column>
+            </el-table>
+            <!--下部分-->
+            <div>
+                <div><h3>部署脚本</h3></div>
+                <div class="sql-container">
+                    <div v-for="sql in currentRow.syncSqls">
+                        {{sql}}
+                    </div>
+                </div>
+            </div>
+        </el-main>
+    </el-container>
+    <!--第二步-->
+    <el-container v-show="step == 2">
+        <el-main>
+            <div><h3>部署脚本</h3></div>
+            <div class="sql-container">
+                <div>
+                    SET FOREIGN_KEY_CHECKS=0;
+                </div>
+                <template v-for="item in diffResult.tables">
+                    <div v-for="sql in item.syncSqls">
+                        {{sql}}
+                    </div>
+                </template>
+                <div>
+                    SET FOREIGN_KEY_CHECKS=1;
+                </div>
+            </div>
+        </el-main>
+    </el-container>
+    <el-divider></el-divider>
+    <el-footer>
+        <el-row class="mb-4">
+            <el-button v-show="step == 1" type="primary" @@click="step = 2">部署</el-button>
+            <el-button v-show="step == 2" type="primary" @@click="step = 1">上一步</el-button>
+            <el-button v-show="step == 2" type="primary" @@click="run">运行</el-button>
+            <el-button type="info" @@click="reDiff">重新比对</el-button>
+        </el-row>
+    </el-footer>
+</div>
+
+@section js{
+    <script>
+        const app = Vue.createApp(
+            {
+                data() {
+                    return {
+                        step: 1,
+                        tableData: [],
+                        diffResult: {},
+                        fullscreenLoading: false,
+                        groued: [],
+                        currentRow: {}
+                    };
+                },
+                computed: {
+
+                },
+                methods: {
+                    run() {
+                        let that = this;
+                        axios.post('/api/Sync/exec' + location.search, {
+                            ...this.diffResult
+                        })
+                            .then(function (response) {
+                                console.log(response);
+                            })
+                            .catch(function (error) {
+                                that.$message.error(error.response.data);
+                            });
+                    },
+                    currentChange(row) {
+                        this.currentRow = row;
+                    },
+                    grouedTables(tables) {
+                        const groupedBy = {};
+
+                        for (const item of tables) {
+                            if (groupedBy[item.operate]) {
+                                groupedBy[item.operate].push(item);
+                            } else {
+                                groupedBy[item.operate] = [item];
+                            }
+                        }
+
+                        var res = [];
+                        for (const item of Object.keys(groupedBy)) {
+                            res.push({
+                                tableName: item,
+                                operate: "",
+                                children: groupedBy[item]
+                            });
+                        }
+                        return res;
+                    },
+                    toDiff() {
+                        location.href = `/home/SyncCheck`;
+                    },
+                    getDiff() {
+                        this.step = 1;
+                        this.fullscreenLoading = true;
+                        axios.get('/api/Sync/diff' + location.search).then(res => {
+                            this.diffResult = res.data
+
+                            var groued = this.grouedTables(this.diffResult.tables);
+                            console.log(groued)
+                            this.tableData = groued;
+                            this.fullscreenLoading = false;
+                        }).catch(err => {
+                            this.fullscreenLoading = false;
+                            this.$message.error(err.response.data);
+                        })
+                    },
+                    reDiff() {
+                        this.getDiff();
+                    }
+                },
+                mounted() {
+                    this.getDiff();
+                }
+            }).use(ElementPlus).mount("#app");
+    </script>
+}
