@@ -7,7 +7,19 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<LangVersion>preview</LangVersion>
+		<Authors>Gui.H</Authors>
+		<PackageProjectUrl>https://github.com/SpringHgui/power-schema-sync</PackageProjectUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<RepositoryUrl>https://github.com/SpringHgui/power-schema-sync</RepositoryUrl>
+		<PackageTags>mysql;schema-sync;sync;数据库结构同步</PackageTags>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Include="..\..\README.md">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Dapper" Version="2.0.123" />
