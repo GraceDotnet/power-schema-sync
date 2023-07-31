@@ -1,7 +1,7 @@
 # power-schema-sync
 [![Nuget](https://img.shields.io/nuget/v/PowerSchemaSync)](https://www.nuget.org/packages/PowerSchemaSync/)
 
-比对两个数据库的结构，生成同步结构所需执行的sql，本项目作为一个开源库，可直接集成到您现有的系统中。由您的程序决定何时同步，或基于本库开发出您自己的数据库结构同步工具~
+`power-schema-sync`是一款使用`.Net`开发的数据库结构同步工具，通过比对两个数据库的结构，生成同步结构所需执行的sql，其功能类似`Navicat`中的结构同步；不同的是本项目作为一个开源库，可直接集成到您现有的系统中，实现定时同步或监听某个事件来触发同步任务。
 
 # 快速开始
 ### 安装
