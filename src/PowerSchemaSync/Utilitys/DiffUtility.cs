@@ -57,11 +57,8 @@ namespace PowerSchemaSync.Utilitys
 
                 if (sourceTable == null)
                 {
-                    diff.Source = null;
-                    diff.Target = new DiffTable {/* TODO */ };
-
                     var dropSql = Target.DropTableSql(targetTable!.Schema, tableName);
-                    diff.SyncSqls.Add(dropSql);
+                    diff.SyncSql = dropSql;
                     diff.Operate = OprateEnum.Delete;
                     res.Tables.Add(diff);
                     continue;
@@ -69,23 +66,17 @@ namespace PowerSchemaSync.Utilitys
 
                 if (targetTable == null)
                 {
-                    diff.Source = new DiffTable {/* TODO */ };
-                    diff.Target = null;
-
-                    // TODO: 创建表的sql
-                    diff.SyncSqls.Add(sourceTable.CreateTable);
+                    diff.SyncSql = sourceTable.CreateTable;
                     diff.Operate = OprateEnum.Created;
                     res.Tables.Add(diff);
                     continue;
                 }
 
                 // 两库中均存在该表
+                diff.Operate = OprateEnum.None;
+
                 diffColumns(ref diff, sourceTable, targetTable);
                 diffIndex(ref diff, sourceTable, targetTable);
-
-                diff.Operate = OprateEnum.Edit;
-                if (diff.SyncSqls.Count == 0)
-                    diff.Operate = OprateEnum.None;
 
                 res.Tables.Add(diff);
             }
@@ -97,6 +88,7 @@ namespace PowerSchemaSync.Utilitys
         {
             // 1.获取两个库中并集
             var unionColumes = sourceTable.Columes.Select(x => x.Name).Union(targetTable.Columes.Select(x => x.Name));
+
             foreach (var columeName in unionColumes)
             {
                 var sourceColume = sourceTable.Columes.FirstOrDefault(x => x.Name == columeName);
@@ -104,11 +96,13 @@ namespace PowerSchemaSync.Utilitys
 
                 if (sourceColume == null)
                 {
-                    diff.Source = null;
-                    diff.Target = new DiffTable {/* TODO */ };
-
                     var sql = Target.DropColumnSql(targetTable.Schema, targetTable.TableName, columeName);
-                    diff.SyncSqls.Add(sql);
+                    diff.Columns.Add(new DiffColumn
+                    {
+                        Name = columeName,
+                        Operate = OprateEnum.Delete,
+                        SyncSql = sql,
+                    });
                     continue;
                 }
 
@@ -135,24 +129,35 @@ namespace PowerSchemaSync.Utilitys
                 var comment = $"{(string.IsNullOrEmpty(sourceColume.Comment) ? null : $" COMMENT '{sourceColume.Comment}'")}";
                 if (targetColume == null)
                 {
-                    diff.Source = new DiffTable {/* TODO */ };
-                    diff.Target = null;
-
                     var sql = Target.AddColumnSql(targetTable.Schema, targetTable.TableName, columeName, sourceColume.COLUMN_TYPE, sourceColume.IsNull, defaultValue, comment, position);
-                    diff.SyncSqls.Add(sql);
+                    diff.Columns.Add(new DiffColumn
+                    {
+                        Name = columeName,
+                        Operate = OprateEnum.Created,
+                        SyncSql = sql,
+                    });
                     continue;
                 }
 
                 // 比较两个字段的定义，任何一个不同就需要按源表的字段进行覆盖
-                if (!checkType(targetColume, sourceColume)
-                    || targetColume.DefaultValue != sourceColume.DefaultValue
+                if (targetColume.DefaultValue != sourceColume.DefaultValue
                     || targetColume.Comment != sourceColume.Comment
                     || targetColume.Extra != sourceColume.Extra
-                    || targetColume.IsNull != sourceColume.IsNull)
+                    || targetColume.IsNull != sourceColume.IsNull || !checkType(targetColume, sourceColume))
                 {
                     var sql = Target.ModifyColumnSql(targetTable.Schema, targetTable.TableName, columeName, sourceColume.COLUMN_TYPE, sourceColume.IsNull, defaultValue, comment, position);
-                    diff.SyncSqls.Add(sql);
+                    diff.Columns.Add(new DiffColumn
+                    {
+                        Name = columeName,
+                        Operate = OprateEnum.Edit,
+                        SyncSql = sql,
+                    });
                 }
+            }
+
+            if (diff.Columns.Any(x => x.Operate != OprateEnum.None))
+            {
+                diff.Operate = OprateEnum.Edit;
             }
         }
 
@@ -161,6 +166,11 @@ namespace PowerSchemaSync.Utilitys
 
         bool checkType(ColumnMetadata column1, ColumnMetadata column2)
         {
+            if (column1.ORDINAL_POSITION != column2.ORDINAL_POSITION)
+            {
+                return false;
+            }
+
             if (column1.COLUMN_TYPE == column2.COLUMN_TYPE)
                 return true;
 
@@ -188,27 +198,39 @@ namespace PowerSchemaSync.Utilitys
 
                 if (sourceIndex == null)
                 {
-                    diff.Source = null;
-                    diff.Target = new DiffTable {/* TODO */ };
-
-                    diff.SyncSqls.Add($"ALTER TABLE `{targetTable.Schema}`.`{targetTable.TableName}` DROP {indexTypeWithName};");
+                    var deleteSql = $"ALTER TABLE `{targetTable.Schema}`.`{targetTable.TableName}` DROP {indexTypeWithName};";
+                    diff.Indexs.Add(new DiffIndex
+                    {
+                        Name = indexName,
+                        Operate = OprateEnum.Delete,
+                        SyncSql = deleteSql
+                    });
                     continue;
                 }
 
                 var comment = $"{(string.IsNullOrEmpty(sourceIndex.COMMENT) ? null : $" COMMENT '{sourceIndex.COMMENT}'")}";
                 if (targetIndex == null)
                 {
-                    diff.Source = new DiffTable {/* TODO */ };
-                    diff.Target = null;
-
                     if (sourceIndex.IndexType == "FULLTEXT")
                     {
                         // 查看源表全文索引使用的解析器
                         var parser = getFTParser(sourceTable.CreateTable, indexName);
-                        diff.SyncSqls.Add($"ALTER TABLE `{targetTable.Schema}`.`{targetTable.TableName}` ADD FULLTEXT {indexTypeWithName}({sourceIndex.ColumnsJoined}){parser}{comment};");
+                        diff.Indexs.Add(new DiffIndex
+                        {
+                            Name = indexName,
+                            Operate = OprateEnum.Created,
+                            SyncSql = $"ALTER TABLE `{targetTable.Schema}`.`{targetTable.TableName}` ADD FULLTEXT {indexTypeWithName}({sourceIndex.ColumnsJoined}){parser}{comment};"
+                        });
                     }
                     else
-                        diff.SyncSqls.Add($"ALTER TABLE `{targetTable.Schema}`.`{targetTable.TableName}` ADD {indexTypeWithName}({sourceIndex.ColumnsJoined}) USING {sourceIndex.IndexType}{comment};");
+                    {
+                        diff.Indexs.Add(new DiffIndex
+                        {
+                            Name = indexName,
+                            Operate = OprateEnum.Created,
+                            SyncSql = $"ALTER TABLE `{targetTable.Schema}`.`{targetTable.TableName}` ADD {indexTypeWithName}({sourceIndex.ColumnsJoined}) USING {sourceIndex.IndexType}{comment};"
+                        });
+                    }
 
                     continue;
                 }
@@ -230,8 +252,18 @@ namespace PowerSchemaSync.Utilitys
                     else
                         dropAndRebuild.Append($"ADD {indexTypeWithName}({sourceIndex.ColumnsJoined}) USING {sourceIndex.IndexType}{comment};");
 
-                    diff.SyncSqls.Add(dropAndRebuild.ToString());
+                    diff.Indexs.Add(new DiffIndex
+                    {
+                        SyncSql = dropAndRebuild.ToString(),
+                        Operate = OprateEnum.Edit,
+                        Name = indexName,
+                    });
                 }
+            }
+
+            if (diff.Indexs.Any(x => x.Operate != OprateEnum.None))
+            {
+                diff.Operate = OprateEnum.Edit;
             }
         }
 

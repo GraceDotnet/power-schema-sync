@@ -4,7 +4,14 @@
 @{
     ViewData["Title"] = "结构检查";
 }
-
+@section css{
+    <style>
+        .code-sql {
+            font-family: cursive;
+            font-size: .9rem;
+        }
+    </style>
+}
 <div id="app">
     <div v-loading.fullscreen.lock="fullscreenLoading" element-loading-text="正在比对..."></div>
     <!--第一步-->
@@ -14,16 +21,26 @@
         </el-header>
         <el-main>
             <!--上部分-->
-            <el-table row-key="tableName" :data="tableData" style="width: 100%" highlight-current-row @@current-change="currentChange">
-                <el-table-column prop="tableName" label="源对象" min-width="45%" sortable>
+            <el-table row-key="name" :data="tableData" style="width: 100%" highlight-current-row @@current-change="currentChange">
+                @* <el-table-column type="selection" width="55"></el-table-column> *@
+                <el-table-column prop="name" label="源对象" min-width="45%" sortable>
                     <template #default="scope">
-                        {{ scope.row.tableName }}
+                        {{ scope.row.name }}
                     </template>
                 </el-table-column>
-                <el-table-column prop="operate" label="操作" min-width="10%" sortable></el-table-column>
-                <el-table-column prop="tableName" label="目标对象" min-width="45%" sortable>
+                <el-table-column prop="operate" label="操作" min-width="10%" sortable>
                     <template #default="scope">
-                        <div v-if="scope.row.operate!=''">{{ scope.row.tableName }}</div>
+                        <div :title="scope.row.operate">
+                            <el-icon v-if="scope.row.operate=='Edit'"><Right /></el-icon>
+                            <el-icon v-if="scope.row.operate=='Delete'"><Close></Close></el-icon>
+                            <el-icon v-if="scope.row.operate=='None'"><Check></Check></el-icon>
+                            <el-icon v-if="scope.row.operate=='Created'"><Plus></Plus></el-icon>
+                        </div>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="name" label="目标对象" min-width="45%" sortable>
+                    <template #default="scope">
+                        <div v-if="scope.row.operate!=''">{{ scope.row.name }}</div>
                         <div else="scope.row.operate!=''"></div>
                     </template>
                 </el-table-column>
@@ -32,8 +49,14 @@
             <div>
                 <div><h3>部署脚本</h3></div>
                 <div class="sql-container">
-                    <div v-for="sql in currentRow.syncSqls">
-                        {{sql}}
+                    <div v-if="currentRow.syncSql">
+                        <div class="code-sql"> {{currentRow.syncSql}}</div>
+                    </div>
+
+                    <div v-if="currentRow.type=='table'">
+                        <div class="code-sql" v-for="sql in currentRow.syncSqls">
+                            {{sql}}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -44,15 +67,17 @@
         <el-main>
             <div><h3>部署脚本</h3></div>
             <div class="sql-container">
-                <div>
+                <div class="code-sql">
                     SET FOREIGN_KEY_CHECKS=0;
                 </div>
-                <template v-for="item in diffResult.tables">
-                    <div v-for="sql in item.syncSqls">
+
+                <template v-for="item in allTables">
+                    <div class="code-sql" v-for="sql in item.syncSqls">
                         {{sql}}
                     </div>
                 </template>
-                <div>
+
+                <div class="code-sql">
                     SET FOREIGN_KEY_CHECKS=1;
                 </div>
             </div>
@@ -73,18 +98,25 @@
     <script>
         const app = Vue.createApp(
             {
+                components: ElementPlusIconsVue,
                 data() {
                     return {
                         step: 1,
                         tableData: [],
                         diffResult: {},
                         fullscreenLoading: false,
-                        groued: [],
                         currentRow: {}
                     };
                 },
                 computed: {
+                    allTables() {
+                        var res = [];
+                        for (const groud of this.tableData) {
+                            res = res.concat(groud.children)
+                        }
 
+                        return res;
+                    }
                 },
                 methods: {
                     run() {
@@ -100,6 +132,7 @@
                             });
                     },
                     currentChange(row) {
+                        console.log(row)
                         this.currentRow = row;
                     },
                     grouedTables(tables) {
@@ -115,10 +148,32 @@
 
                         var res = [];
                         for (const item of Object.keys(groupedBy)) {
+                            let children = [];
+                            for (const table of groupedBy[item]) {
+
+                                var syncSqls = [];
+                                for (const column of table.columns) {
+                                    syncSqls.push(column.syncSql);
+                                }
+
+                                for (const index of table.indexs) {
+                                    syncSqls.push(index.syncSql);
+                                }
+
+                                children.push({
+                                    type: 'table',
+                                    name: table.tableName,
+                                    operate: table.operate,
+                                    syncSqls: syncSqls,
+                                    children: table.columns.concat(table.indexs)
+                                })
+                            }
+
                             res.push({
-                                tableName: item,
+                                type: 'group',
+                                name: item == "Edit" ? "要修改的对象" : item == "None" ? "没有操作" : item == "Delete" ? "要删除的对象" : item == "Created" ? "要创建的对象" : "",
                                 operate: "",
-                                children: groupedBy[item]
+                                children: children
                             });
                         }
                         return res;
@@ -132,13 +187,13 @@
                         axios.get('/api/Sync/diff' + location.search).then(res => {
                             this.diffResult = res.data
 
-                            var groued = this.grouedTables(this.diffResult.tables);
-                            console.log(groued)
-                            this.tableData = groued;
+                            this.tableData = this.grouedTables(this.diffResult.tables);
+                            console.log(this.tableData)
+ 
                             this.fullscreenLoading = false;
                         }).catch(err => {
                             this.fullscreenLoading = false;
-                            this.$message.error(err.response.data);
+                            this.$message.error(err.message || err.response.data);
                         })
                     },
                     reDiff() {
