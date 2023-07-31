@@ -1,7 +1,7 @@
 # power-schema-sync
 [![Nuget](https://img.shields.io/nuget/v/PowerSchemaSync)](https://www.nuget.org/packages/PowerSchemaSync/)
 
-Compare database structures and generate SQL for structure synchronization，Easy integration into applications~
+`power-schema-sync` is a database structure synchronization tool developed using '.Net', which compares the structure of the two databases to generate the SQL required to synchronize the structure, which functions similarly to the structure synchronization in 'Navicat'; The difference is that this project is an open source library that can be directly integrated into your existing system to implement regular synchronization or listen for an event to trigger a synchronization task.
 
 # Quick Start
 ### install
