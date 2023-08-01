@@ -8,8 +8,8 @@ on:
 
 jobs:
   build:
-    runs-on: self-hosted
-#     runs-on: ubuntu-latest
+    #runs-on: self-hosted
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
@@ -30,8 +30,8 @@ jobs:
       run: dotnet test --no-build --verbosity normal
   publish:
     name: publish-nuget
-    runs-on: self-hosted
-#     runs-on: ubuntu-latest
+    #runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
